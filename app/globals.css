@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-top: #e6f0ff;
+  --background-mid: #ede8ff;
+  --background-bottom: #f2e4ff;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --card-surface: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(255, 255, 255, 0.5);
+  --card-shadow: 0 10px 32px rgba(88, 94, 128, 0.14);
+  --action-start: #5c7cf2;
+  --action-end: #b551f4;
+}
+
+body {
+  color: var(--text-primary);
+  background: radial-gradient(180% 120% at 50% -20%, rgba(211, 233, 255, 0.6) 0%, rgba(211, 233, 255, 0) 60%),
+    linear-gradient(180deg, var(--background-top) 0%, var(--background-mid) 45%, var(--background-bottom) 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .card-surface {
+    background: var(--card-surface);
+    backdrop-filter: blur(18px);
+    border-radius: 1.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 45px rgba(104, 121, 155, 0.12);
+  }
+
+  .subtle-text {
+    color: var(--text-secondary);
+  }
+
+  .gradient-button {
+    background: linear-gradient(135deg, var(--action-start), var(--action-end));
+    transition: all 0.3s ease;
+    box-shadow: 0 12px 32px rgba(104, 116, 255, 0.25);
+  }
+
+  .gradient-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 38px rgba(104, 116, 255, 0.32);
+  }
+
+  .upload-placeholder {
+    background: linear-gradient(180deg, #f8f9ff 0%, #eef1ff 100%);
+    border-radius: 1.1rem;
+    border: 1px solid rgba(205, 212, 235, 0.8);
+  }
+
+  .card-heading {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .card-caption {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+}
