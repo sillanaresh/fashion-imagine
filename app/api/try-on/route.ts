@@ -14,6 +14,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check image sizes (Vercel has a 4.5MB body size limit)
+    const totalSize = (clothingImage.length + userImage.length) / 1024 / 1024; // Size in MB
+    console.log(`Total image size: ${totalSize.toFixed(2)} MB`);
+
+    if (totalSize > 4) {
+      return NextResponse.json(
+        { error: 'Images are too large. Please use smaller images (combined size under 4MB).' },
+        { status: 413 }
+      );
+    }
+
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
         { error: 'API key not configured' },
@@ -108,15 +119,34 @@ OUTPUT: Generate ONLY the final photorealistic image of the person wearing the n
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenRouter API error:', errorData);
+      let errorMessage = 'Unknown error';
+      try {
+        const errorData = await response.json();
+        console.error('OpenRouter API error:', errorData);
+        errorMessage = errorData.error?.message || JSON.stringify(errorData);
+      } catch (e) {
+        // If response is not JSON, get it as text
+        const textError = await response.text();
+        console.error('OpenRouter non-JSON error:', textError);
+        errorMessage = textError.substring(0, 200); // Limit error message length
+      }
       return NextResponse.json(
-        { error: `AI service error: ${errorData.error?.message || 'Unknown error'}` },
+        { error: `AI service error: ${errorMessage}` },
         { status: response.status }
       );
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      const textResponse = await response.text();
+      console.error('Failed to parse JSON response:', textResponse.substring(0, 500));
+      return NextResponse.json(
+        { error: 'Invalid response from AI service. Response was not JSON.' },
+        { status: 500 }
+      );
+    }
 
     console.log('OpenRouter Response:', JSON.stringify(data, null, 2));
 
