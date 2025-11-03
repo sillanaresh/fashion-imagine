@@ -15,12 +15,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Check image sizes (Vercel has a 4.5MB body size limit)
+    // Note: Base64 encoding increases size by ~33%, so we're checking the encoded size
     const totalSize = (clothingImage.length + userImage.length) / 1024 / 1024; // Size in MB
-    console.log(`Total image size: ${totalSize.toFixed(2)} MB`);
+    console.log(`Total image size (base64 encoded): ${totalSize.toFixed(2)} MB`);
 
-    if (totalSize > 4) {
+    // Increased limit to 10MB for base64 encoded data (roughly 7.5MB original size)
+    if (totalSize > 10) {
       return NextResponse.json(
-        { error: 'Images are too large. Please use smaller images (combined size under 4MB).' },
+        { error: 'Images are too large. Please use smaller images (combined size under 7MB).' },
         { status: 413 }
       );
     }
