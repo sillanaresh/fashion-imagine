@@ -183,3 +183,5 @@ This project is open source and available under the MIT License.
 ---
 
 Made with ❤️ for fashion enthusiasts who want to try before they buy!
+
+**Note:** This project was created using vibe coding.
