@@ -194,6 +194,10 @@ export default function Home() {
               {isProcessing ? 'Processing...' : 'Do the magic'}
             </motion.button>
 
+            <p className="text-gray-500 leading-relaxed mt-4" style={{ fontSize: '11px' }}>
+              Please try a couple of times if desired<br />results are not achieved. Image models are probabilistic
+            </p>
+
             {resultImage && (
               <button
                 onClick={() => setResultImage(null)}
