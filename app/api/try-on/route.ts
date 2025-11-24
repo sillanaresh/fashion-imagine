@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'google/gemini-2.5-flash-image';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'google/gemini-3-pro-image-preview';
 
 export async function POST(req: NextRequest) {
   try {
