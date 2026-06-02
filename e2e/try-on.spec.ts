@@ -13,7 +13,6 @@ test('generates a try-on result from two uploaded references', async ({ page }, 
       name: 'Mock Balanced Model',
       referenceMode: 'native-two-image',
     },
-    usedCompositeReference: false,
     success: true,
   });
 

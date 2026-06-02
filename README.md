@@ -6,7 +6,7 @@ An AI virtual try-on studio. Upload a person reference and a garment reference, 
 
 1. Upload a clear person photo.
 2. Upload a garment or product image.
-3. Choose a generation route: value, balanced, quality, or experimental Recraft.
+3. Choose a generation route: value, balanced, or premium quality.
 4. Generate, compare before/after, retry, or download the result.
 
 ## Architecture
@@ -15,7 +15,7 @@ An AI virtual try-on studio. Upload a person reference and a garment reference, 
 - **Client image preparation** compresses uploads to JPEG in-browser before sending them.
 - **Server validation** checks request shape, MIME type, image byte size, and decodable image metadata before any provider call.
 - **Model catalog** lives in `lib/model-catalog.ts`, keeping provider routes allowlisted and explainable.
-- **Reference preparation** supports native two-image models and one-image models. One-image routes receive a generated reference board composed with Sharp.
+- **Reference preparation** sends the person and garment as native two-image references.
 - **OpenRouter client** lives in `lib/openrouter.ts`, isolated from UI and request validation.
 
 ## Model Routes
@@ -31,7 +31,6 @@ Allowlisted routes:
 - `google/gemini-3.1-flash-image-preview` - balanced default, native two-reference image flow.
 - `google/gemini-2.5-flash-image` - lowest-cost native two-reference route in the current catalog.
 - `openai/gpt-5.4-image-2` - premium OpenAI quality route currently listed by OpenRouter.
-- `recraft/recraft-v4.1-utility-pro` - experimental route. OpenRouter notes Recraft supports one input image, so the app sends a composed reference board.
 
 ## Tech Stack
 
@@ -39,7 +38,7 @@ Allowlisted routes:
 - React 19
 - Tailwind CSS v4 plus custom CSS tokens
 - Framer Motion
-- Sharp for server-side reference-board composition
+- Sharp for server-side image metadata validation
 - Zod for API request validation
 - Vitest and Playwright for tests
 - OpenRouter for image model access
@@ -99,7 +98,6 @@ lib/
   image-validation.ts      Server-side image decode validation
   model-catalog.ts         Model allowlist and route metadata
   openrouter.ts            OpenRouter client and response extraction
-  reference-board.ts       Sharp-composed reference board for one-image models
   try-on.ts                Prompt and reference preparation
 tests/                     Unit tests
 e2e/                       Playwright E2E tests

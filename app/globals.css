@@ -1,5 +1,5 @@
-/* Hallmark · pre-emit critique: P5 H4 E4 S4 R4 V4
- * Audience: shoppers and small fashion teams · Use: generate a reliable virtual try-on · Tone: polished utility
+/* Hallmark · pre-emit critique: P5 H4 E5 S4 R5 V4
+ * Audience: shoppers and small fashion teams · Use: generate a reliable virtual try-on · Tone: editorial atelier
  */
 @tailwind base;
 @tailwind components;
@@ -7,25 +7,27 @@
 
 :root {
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --color-canvas: #f2f7f6;
+  --font-display: Georgia, "Times New Roman", serif;
+  --color-canvas: #f4f6f5;
   --color-surface: #ffffff;
-  --color-surface-raised: #f8fbfa;
-  --color-ink: #1f241f;
-  --color-muted: #5f675c;
-  --color-soft: #848c80;
-  --color-border: #d9dfd1;
-  --color-border-strong: #afb9a8;
-  --color-accent: #0b7665;
-  --color-accent-strong: #07584b;
-  --color-accent-soft: #dceee9;
-  --color-coral: #c94f37;
-  --color-coral-soft: #f4dfd8;
-  --color-gold: #99621f;
-  --color-gold-soft: #f4dfd8;
-  --color-focus: #0b7665;
-  --color-danger: #b83f2f;
-  --shadow-soft: 0 18px 60px rgba(31, 36, 31, 0.10);
-  --shadow-small: 0 8px 24px rgba(31, 36, 31, 0.08);
+  --color-surface-raised: #fafafa;
+  --color-ink: #181818;
+  --color-muted: #62645f;
+  --color-soft: #8b8d88;
+  --color-border: #d9d9d4;
+  --color-border-strong: #aaa9a2;
+  --color-accent: #7a1222;
+  --color-accent-strong: #4d0d18;
+  --color-accent-soft: #f1dde1;
+  --color-coral: #b73522;
+  --color-coral-soft: #f0dad4;
+  --color-gold: #7c5b1f;
+  --color-gold-soft: #f0dad4;
+  --color-focus: #7a1222;
+  --color-danger: #a32f24;
+  --color-mark-ink: #f7f3ea;
+  --shadow-soft: 0 18px 60px rgba(24, 24, 24, 0.10);
+  --shadow-small: 0 8px 24px rgba(24, 24, 24, 0.08);
   --radius-card: 8px;
   --radius-control: 8px;
   --space-page: 48px;
@@ -45,7 +47,7 @@ body {
   margin: 0;
   color: var(--color-ink);
   background:
-    linear-gradient(90deg, rgba(11, 118, 101, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 24, 24, 0.045) 1px, transparent 1px),
     linear-gradient(180deg, var(--color-canvas), var(--color-surface-raised));
   background-size: 44px 44px, 100% 100%;
   font-family: var(--font-sans);
@@ -109,20 +111,26 @@ img {
   text-decoration: none;
 }
 
-.brand-mark span {
+.brand-mark__symbol {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-control);
-  color: var(--color-surface);
-  background: var(--color-ink);
-  font-size: 12px;
-  font-weight: 800;
+  color: var(--color-ink);
+  background: transparent;
+  overflow: hidden;
+}
+
+.brand-mark__symbol svg {
+  width: 38px;
+  height: 38px;
 }
 
 .brand-mark strong {
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -149,10 +157,12 @@ img {
 }
 
 .studio-intro h1 {
-  max-width: 820px;
+  max-width: 900px;
   margin: 8px 0 12px;
+  font-family: var(--font-display);
   font-size: 68px;
-  line-height: 0.96;
+  font-weight: 500;
+  line-height: 0.94;
   overflow-wrap: anywhere;
 }
 
@@ -271,7 +281,7 @@ img {
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-control);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-accent-soft) 54%, transparent), transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent-soft) 28%, transparent), transparent 55%),
     var(--color-surface-raised);
   color: var(--color-muted);
   cursor: pointer;
@@ -433,8 +443,8 @@ img {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background:
-    linear-gradient(90deg, rgba(31, 36, 31, 0.04) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(31, 36, 31, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 24, 24, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(24, 24, 24, 0.04) 1px, transparent 1px),
     var(--color-surface-raised);
   background-size: 28px 28px;
 }
@@ -467,6 +477,16 @@ img {
 .result-empty p {
   margin: 0;
   line-height: 1.5;
+}
+
+.generation-timer {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .result-empty.is-error {
@@ -655,13 +675,6 @@ img {
   line-height: 1.45;
 }
 
-.model-option__caveat {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  color: var(--color-gold);
-}
-
 .generation-summary {
   display: grid;
   gap: 10px;
@@ -783,7 +796,7 @@ img {
   }
 
   .studio-intro h1 {
-    font-size: 50px;
+    font-size: 52px;
   }
 
   .studio-intro__notes {
@@ -811,7 +824,7 @@ img {
   }
 
   .studio-intro h1 {
-    font-size: 40px;
+    font-size: 42px;
   }
 
   .result-stage,

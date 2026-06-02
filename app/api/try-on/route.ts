@@ -67,14 +67,10 @@ export async function POST(req: NextRequest) {
     ]);
 
     const preparedReferences = await prepareTryOnReferences({
-      model: requestedModel,
       userImage,
       clothingImage,
     });
-    const prompt = buildVirtualTryOnPrompt(
-      requestedModel,
-      preparedReferences.usedCompositeReference
-    );
+    const prompt = buildVirtualTryOnPrompt(requestedModel);
     const generation = await generateTryOnImage({
       apiKey: OPENROUTER_API_KEY,
       model: requestedModel,
@@ -90,7 +86,6 @@ export async function POST(req: NextRequest) {
         name: requestedModel.name,
         referenceMode: requestedModel.referenceMode,
       },
-      usedCompositeReference: preparedReferences.usedCompositeReference,
       success: true,
     });
   } catch (error) {

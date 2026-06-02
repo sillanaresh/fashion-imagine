@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, BadgeCheck, FlaskConical, Gauge, Zap } from 'lucide-react';
+import { BadgeCheck, Gauge, Zap } from 'lucide-react';
 import { TRY_ON_MODELS, type TryOnModelId } from '@/lib/model-catalog';
 
 type ModelSelectorProps = {
@@ -12,7 +12,6 @@ const tierIcons = {
   value: Zap,
   balanced: Gauge,
   quality: BadgeCheck,
-  experimental: FlaskConical,
 };
 
 export default function ModelSelector({ selectedModelId, onModelChange }: ModelSelectorProps) {
@@ -43,12 +42,6 @@ export default function ModelSelector({ selectedModelId, onModelChange }: ModelS
               </span>
               <strong>{model.name}</strong>
               <span className="model-option__description">{model.description}</span>
-              {model.caveat && (
-                <span className="model-option__caveat">
-                  <AlertTriangle size={14} strokeWidth={1.8} />
-                  {model.caveat}
-                </span>
-              )}
             </label>
           );
         })}

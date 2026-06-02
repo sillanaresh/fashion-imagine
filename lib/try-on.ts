@@ -1,40 +1,25 @@
 import type { TryOnModel } from './model-catalog';
-import { createReferenceBoard } from './reference-board';
 
 type PrepareTryOnReferencesInput = {
-  model: TryOnModel;
   userImage: string;
   clothingImage: string;
 };
 
 export async function prepareTryOnReferences({
-  model,
   userImage,
   clothingImage,
 }: PrepareTryOnReferencesInput) {
-  if (model.referenceMode === 'composite-reference') {
-    return {
-      images: [
-        await createReferenceBoard({ userImage, clothingImage }),
-      ],
-      usedCompositeReference: true,
-    };
-  }
-
   return {
     images: [userImage, clothingImage],
-    usedCompositeReference: false,
   };
 }
 
-export function buildVirtualTryOnPrompt(model: TryOnModel, usedCompositeReference: boolean) {
-  const referenceInstructions = usedCompositeReference
-    ? `You receive ONE reference board image. The left panel is labeled PERSON REFERENCE and the right panel is labeled GARMENT REFERENCE. Use those labels only to interpret the references. Do not include the board, labels, panel frames, or any text in the output.`
-    : `You receive TWO images. IMAGE 1 is the person's photograph. IMAGE 2 is the clothing/product reference.`;
-
+export function buildVirtualTryOnPrompt(model: TryOnModel) {
   return `You are an expert virtual fashion try-on image editor.
 
-${referenceInstructions}
+You receive TWO images:
+- IMAGE 1 is the person's photograph.
+- IMAGE 2 is the clothing/product reference.
 
 Goal:
 Generate one photorealistic image of the person wearing the garment from the clothing reference.
@@ -50,7 +35,7 @@ Rules:
 - Keep the output in the same overall framing as the person's photo when possible.
 
 Model-specific note:
-${model.name} is being used in ${model.referenceMode === 'native-two-image' ? 'native two-reference mode' : 'composite-reference mode'}.
+${model.name} is being used in native two-reference mode.
 
 Output:
 Return only the final try-on image. No captions, no annotations, no comparison grid.`;

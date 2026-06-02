@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Columns2, Download, RefreshCcw, RotateCcw, Sparkles } from 'lucide-react';
 import type { UploadedImage } from './ImageUploader';
 
@@ -10,7 +10,6 @@ type ResultDisplayProps = {
   isProcessing: boolean;
   error: string | null;
   modelName: string;
-  usedCompositeReference: boolean;
   onReset: () => void;
   onRetry: () => void;
   canRetry: boolean;
@@ -22,13 +21,28 @@ export default function ResultDisplay({
   isProcessing,
   error,
   modelName,
-  usedCompositeReference,
   onReset,
   onRetry,
   canRetry,
 }: ResultDisplayProps) {
   const [view, setView] = useState<'result' | 'compare'>('result');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const canCompare = Boolean(resultImage && userImage);
+  const loadingStage = getLoadingStage(elapsedSeconds);
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isProcessing]);
 
   return (
     <section className="result-stage" aria-label="Generated try-on result">
@@ -66,8 +80,9 @@ export default function ResultDisplay({
         {isProcessing && (
           <div className="result-empty" aria-live="polite">
             <span className="spinner" aria-hidden="true" />
-            <strong>Generating the try-on</strong>
-            <p>The model is aligning the garment to the person reference.</p>
+            <strong>{loadingStage.title}</strong>
+            <p>{loadingStage.copy}</p>
+            <span className="generation-timer">{elapsedSeconds}s elapsed</span>
           </div>
         )}
 
@@ -107,7 +122,7 @@ export default function ResultDisplay({
       <div className="result-stage__footer">
         <div className="result-model">
           <span>{modelName}</span>
-          <small>{usedCompositeReference ? 'Composite reference' : 'Native two-reference'}</small>
+          <small>Native two-reference</small>
         </div>
         <div className="result-actions">
           {resultImage && (
@@ -128,4 +143,25 @@ export default function ResultDisplay({
       </div>
     </section>
   );
+}
+
+function getLoadingStage(elapsedSeconds: number) {
+  if (elapsedSeconds >= 45) {
+    return {
+      title: 'Still rendering',
+      copy: 'Premium image models can take a minute. The request is still active unless an error appears.',
+    };
+  }
+
+  if (elapsedSeconds >= 20) {
+    return {
+      title: 'Refining fabric and fit',
+      copy: 'This is normal for high-fidelity try-ons. The model is preserving identity and garment details.',
+    };
+  }
+
+  return {
+    title: 'Generating the try-on',
+    copy: 'The model is aligning the garment to the person reference.',
+  };
 }

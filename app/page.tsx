@@ -6,6 +6,7 @@ import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles, WandSparkles } from '
 import ImageUploader, { type UploadedImage } from '@/components/ImageUploader';
 import ModelSelector from '@/components/ModelSelector';
 import ResultDisplay from '@/components/ResultDisplay';
+import FashionMark from '@/components/FashionMark';
 import {
   DEFAULT_TRY_ON_MODEL_ID,
   TRY_ON_MODELS,
@@ -20,7 +21,6 @@ type TryOnResponse = {
     name: string;
     referenceMode: string;
   };
-  usedCompositeReference?: boolean;
 };
 
 export default function Home() {
@@ -31,7 +31,6 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastModelName, setLastModelName] = useState('No generation yet');
-  const [usedCompositeReference, setUsedCompositeReference] = useState(false);
 
   const selectedModel = useMemo(
     () => TRY_ON_MODELS.find((model) => model.id === selectedModelId)!,
@@ -48,7 +47,6 @@ export default function Home() {
     setIsProcessing(true);
     setError(null);
     setResultImage(null);
-    setUsedCompositeReference(selectedModel.referenceMode === 'composite-reference');
     setLastModelName(selectedModel.name);
 
     try {
@@ -72,7 +70,6 @@ export default function Home() {
 
       setResultImage(data.resultImage);
       setLastModelName(data.model?.name || selectedModel.name);
-      setUsedCompositeReference(Boolean(data.usedCompositeReference));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong while generating.');
     } finally {
@@ -83,7 +80,6 @@ export default function Home() {
   const resetResult = () => {
     setResultImage(null);
     setError(null);
-    setUsedCompositeReference(false);
     setLastModelName('No generation yet');
   };
 
@@ -91,7 +87,9 @@ export default function Home() {
     <main className="app-shell">
       <header className="topbar">
         <a className="brand-mark" href="/" aria-label="Fashion Imagine home">
-          <span aria-hidden="true">FI</span>
+          <span className="brand-mark__symbol" aria-hidden="true">
+            <FashionMark title="Fashion Imagine" />
+          </span>
           <strong>Fashion Imagine</strong>
         </a>
         <div className="topbar__status" aria-label="Privacy status">
@@ -106,17 +104,17 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <p className="ui-eyebrow">Virtual fitting room</p>
-          <h1 id="studio-title">Fit check before checkout.</h1>
+          <p className="ui-eyebrow">Virtual fitting atelier</p>
+          <h1 id="studio-title">Try the look before it becomes yours.</h1>
           <p>
-            Upload a person photo and a garment reference. The studio prepares the inputs,
-            routes them through an allowlisted image model, and returns a single try-on render.
+            Upload a person photo and a garment reference. The atelier keeps the workflow spare,
+            routes both images through an allowlisted model, and returns a polished try-on render.
           </p>
         </motion.div>
         <div className="studio-intro__notes" aria-label="Workflow checkpoints">
-          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Person identity preserved</span>
-          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Garment details prioritized</span>
-          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Clear model cost mode</span>
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Preserve the wearer</span>
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Respect the garment</span>
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Choose the render house</span>
         </div>
       </section>
 
@@ -124,8 +122,8 @@ export default function Home() {
         <div className="reference-column">
           <ImageUploader
             id="person-upload"
-            title="Person reference"
-            eyebrow="Step 1"
+            title="Wearer image"
+            eyebrow="Look 01"
             helper="Use a clear, well-lit full-body or half-body photo."
             kind="person"
             image={userImage}
@@ -136,8 +134,8 @@ export default function Home() {
           />
           <ImageUploader
             id="garment-upload"
-            title="Garment reference"
-            eyebrow="Step 2"
+            title="Garment image"
+            eyebrow="Look 02"
             helper="Use a clean product shot, flat lay, or model photo of the garment."
             kind="garment"
             image={clothingImage}
@@ -154,7 +152,6 @@ export default function Home() {
           isProcessing={isProcessing}
           error={error}
           modelName={lastModelName}
-          usedCompositeReference={usedCompositeReference}
           onReset={resetResult}
           onRetry={handleTryOn}
           canRetry={Boolean(userImage && clothingImage)}

@@ -17,9 +17,7 @@ describe('try-on model catalog', () => {
     expect(getDefaultTryOnModel('unknown/model').id).toBe(DEFAULT_TRY_ON_MODEL_ID);
   });
 
-  it('marks one-input models as composite-reference routes', () => {
-    const oneInputModels = TRY_ON_MODELS.filter((model) => model.maxInputImages === 1);
-    expect(oneInputModels.length).toBeGreaterThan(0);
-    expect(oneInputModels.every((model) => model.referenceMode === 'composite-reference')).toBe(true);
+  it('only exposes native two-reference models for virtual try-on', () => {
+    expect(TRY_ON_MODELS.every((model) => model.referenceMode === 'native-two-image')).toBe(true);
   });
 });
