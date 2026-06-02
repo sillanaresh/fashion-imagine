@@ -94,6 +94,8 @@ The app uses three layers:
 
 The daily limit is best-effort per browser/device. It uses cookies and local storage, which is appropriate for a lightweight demo but not a substitute for authenticated server-side quotas if the app becomes public at scale.
 
+The interest counter is an in-memory server-process counter plus a device cookie. It is useful for local/demo tracing; replace `lib/interest-store.ts` with a durable database, KV store, or analytics event if you need reliable aggregate counts across deploys.
+
 ## Privacy Note
 
 This app does not store uploaded images. During generation, both references are sent to OpenRouter and the selected model provider. Do not describe the flow as fully private unless the deployment adds provider-side retention controls, storage guarantees, and user-facing policy text.
@@ -117,6 +119,7 @@ lib/
   image-validation.ts      Server-side image decode validation
   device-guardrails.ts     UTC day/cookie helpers for quota and interest
   fashion-facts.ts         320 global fashion notes for the loading roller
+  interest-store.ts        Replaceable in-memory interest counter
   model-catalog.ts         Model allowlist and route metadata
   openrouter.ts            OpenRouter client and response extraction
   safety.ts                Multimodal safety reviewer and refusal mapping
