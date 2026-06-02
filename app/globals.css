@@ -545,7 +545,7 @@ img {
   font-family: var(--font-display);
   font-size: 30px;
   line-height: 1.15;
-  animation: factRoll 4200ms ease-in-out infinite;
+  animation: factRoll 7600ms ease-in-out infinite;
 }
 
 .fashion-fact-roller small {
@@ -797,6 +797,41 @@ img {
   color: var(--color-coral);
 }
 
+.generation-action {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent-soft) 42%, transparent), transparent 68%),
+    var(--color-surface);
+  box-shadow: var(--shadow-small);
+}
+
+.generation-action.is-premium {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-gold-soft) 60%, transparent), transparent 68%),
+    var(--color-surface);
+}
+
+.generation-action h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.generation-action p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.generation-action .primary-button {
+  grid-column: auto;
+}
+
 .limit-interest {
   display: grid;
   gap: 12px;
@@ -916,7 +951,10 @@ img {
     grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
   }
 
-  .primary-button,
+  .generation-action {
+    grid-column: 1 / -1;
+  }
+
   .privacy-note,
   .limit-interest {
     grid-column: 2;
@@ -961,11 +999,23 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .reference-column {
+    order: 1;
+  }
+
+  .control-panel {
+    order: 2;
+  }
+
+  .result-stage {
+    order: 3;
+  }
+
   .result-stage {
     min-height: 620px;
   }
 
-  .primary-button,
+  .generation-action,
   .privacy-note,
   .limit-interest {
     grid-column: auto;

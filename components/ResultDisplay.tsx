@@ -65,7 +65,7 @@ export default function ResultDisplay({
 
     const factTimer = window.setInterval(() => {
       setFactIndex((current) => (current + 1) % FASHION_FACTS.length);
-    }, 4200);
+    }, 7600);
 
     return () => window.clearInterval(factTimer);
   }, [isProcessing]);
@@ -119,7 +119,6 @@ export default function ResultDisplay({
               <div className="fashion-fact-roller__window">
                 <span>{FASHION_FACTS[factIndex]}</span>
               </div>
-              <small>{factIndex + 1} / {FASHION_FACTS.length} global fashion notes</small>
             </div>
           </div>
         )}

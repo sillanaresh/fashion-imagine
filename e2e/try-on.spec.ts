@@ -77,10 +77,10 @@ test('moves long-running generation feedback to the top and shows rolling facts'
 
   await expect(page.getByText('Atelier in progress')).toBeVisible();
   await expect(page.getByText('While the atelier works')).toBeVisible();
-  await expect(page.getByText('/ 320 global fashion notes')).toBeVisible();
+  await expect(page.getByText('global fashion notes')).toBeHidden();
 });
 
-test('disables generation after the daily device limit and records interest once', async ({ page }, testInfo) => {
+test('keeps Nano routes unlimited and gates only the GPT route after the daily limit', async ({ page }, testInfo) => {
   let interestSignals = 0;
 
   await page.route('**/api/usage', async (route) => {
@@ -88,7 +88,7 @@ test('disables generation after the daily device limit and records interest once
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        generationUsedToday: true,
+        gptGenerationUsedToday: true,
         interestRegistered: false,
         today: '2026-06-02',
       }),
@@ -116,8 +116,14 @@ test('disables generation after the daily device limit and records interest once
   await page.goto('/');
   await uploadFixturePair(page, testInfo);
 
-  await expect(page.getByRole('button', { name: 'Daily preview used' })).toBeDisabled();
-  await expect(page.getByText('One render used today')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate try-on' })).toBeEnabled();
+  await expect(page.getByText('Nano routes are unlimited today')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show interest' })).toBeHidden();
+
+  await page.locator('input[value="openai/gpt-5.4-image-2"]').check({ force: true });
+
+  await expect(page.getByRole('button', { name: 'GPT preview used' })).toBeDisabled();
+  await expect(page.getByText('Free GPT used today')).toBeVisible();
 
   await page.getByRole('button', { name: 'Show interest' }).click();
   await expect(page.getByRole('button', { name: 'Interest noted' })).toBeVisible();

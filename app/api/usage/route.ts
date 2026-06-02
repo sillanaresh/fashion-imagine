@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const today = getUtcDayKey();
 
   return NextResponse.json({
+    gptGenerationUsedToday: req.cookies.get(GENERATION_LIMIT_COOKIE)?.value === today,
     generationUsedToday: req.cookies.get(GENERATION_LIMIT_COOKIE)?.value === today,
     interestRegistered: req.cookies.get(INTEREST_SIGNAL_COOKIE)?.value === '1',
     interestCount: getInterestSignalCount(),

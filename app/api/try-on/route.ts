@@ -35,17 +35,6 @@ const tryOnRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const today = getUtcDayKey();
-
-    if (req.cookies.get(GENERATION_LIMIT_COOKIE)?.value === today) {
-      return NextResponse.json(
-        {
-          code: 'DAILY_LIMIT_REACHED',
-          error: 'Today’s complimentary try-on has already been used on this device. Tap Show interest if you want more generations opened up.',
-        },
-        { status: 429 }
-      );
-    }
-
     const body = await readJson(req);
     const parsed = tryOnRequestSchema.safeParse(body);
 
@@ -68,6 +57,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { code: 'INVALID_MODEL', error: 'Unsupported image model selected' },
         { status: 400 }
+      );
+    }
+
+    const isPremiumModel = requestedModel.tier === 'quality';
+
+    if (isPremiumModel && req.cookies.get(GENERATION_LIMIT_COOKIE)?.value === today) {
+      return NextResponse.json(
+        {
+          code: 'DAILY_LIMIT_REACHED',
+          error: 'Today’s free GPT try-on has already been used on this device. Nano routes are still unlimited, or tap Show interest if you want more GPT generations.',
+        },
+        { status: 429 }
       );
     }
 
@@ -135,11 +136,14 @@ export async function POST(req: NextRequest) {
       },
       success: true,
     });
-    response.cookies.set(
-      GENERATION_LIMIT_COOKIE,
-      today,
-      getCookieOptions(secondsUntilNextUtcDay())
-    );
+
+    if (isPremiumModel) {
+      response.cookies.set(
+        GENERATION_LIMIT_COOKIE,
+        today,
+        getCookieOptions(secondsUntilNextUtcDay())
+      );
+    }
 
     return response;
   } catch (error) {

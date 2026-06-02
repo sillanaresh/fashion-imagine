@@ -26,6 +26,7 @@ type TryOnResponse = {
 
 type UsageResponse = {
   generationUsedToday?: boolean;
+  gptGenerationUsedToday?: boolean;
   interestRegistered?: boolean;
   today?: string;
 };
@@ -35,7 +36,7 @@ type InterestResponse = {
   registered?: boolean;
 };
 
-const LOCAL_GENERATION_DAY_KEY = 'fashion-imagine:generation-day';
+const LOCAL_GPT_GENERATION_DAY_KEY = 'fashion-imagine:gpt-generation-day';
 const LOCAL_INTEREST_SELECTED_KEY = 'fashion-imagine:interest-selected';
 
 export default function Home() {
@@ -47,7 +48,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<ResultErrorCode>(null);
   const [lastModelName, setLastModelName] = useState('No generation yet');
-  const [dailyLimitUsed, setDailyLimitUsed] = useState(false);
+  const [gptLimitUsed, setGptLimitUsed] = useState(false);
   const [interestSelected, setInterestSelected] = useState(false);
   const [interestRegistered, setInterestRegistered] = useState(false);
   const [isInterestSaving, setIsInterestSaving] = useState(false);
@@ -56,14 +57,15 @@ export default function Home() {
     () => TRY_ON_MODELS.find((model) => model.id === selectedModelId)!,
     [selectedModelId]
   );
-  const canGenerate = Boolean(userImage && clothingImage && !isProcessing && !dailyLimitUsed);
+  const isPremiumModel = selectedModel.tier === 'quality';
+  const canGenerate = Boolean(userImage && clothingImage && !isProcessing && !(isPremiumModel && gptLimitUsed));
 
   useEffect(() => {
     const today = getTodayKey();
-    const localLimitUsed = window.localStorage.getItem(LOCAL_GENERATION_DAY_KEY) === today;
+    const localGptLimitUsed = window.localStorage.getItem(LOCAL_GPT_GENERATION_DAY_KEY) === today;
     const localInterestSelected = window.localStorage.getItem(LOCAL_INTEREST_SELECTED_KEY) === '1';
 
-    setDailyLimitUsed(localLimitUsed);
+    setGptLimitUsed(localGptLimitUsed);
     setInterestSelected(localInterestSelected);
 
     fetch('/api/usage')
@@ -73,9 +75,9 @@ export default function Home() {
           return;
         }
 
-        const serverLimitUsed = Boolean(data.generationUsedToday);
+        const serverGptLimitUsed = Boolean(data.gptGenerationUsedToday ?? data.generationUsedToday);
         const serverInterestRegistered = Boolean(data.interestRegistered);
-        setDailyLimitUsed(serverLimitUsed || localLimitUsed);
+        setGptLimitUsed(serverGptLimitUsed || localGptLimitUsed);
         setInterestRegistered(serverInterestRegistered);
 
         if (serverInterestRegistered) {
@@ -84,7 +86,7 @@ export default function Home() {
         }
       })
       .catch(() => {
-        setDailyLimitUsed(localLimitUsed);
+        setGptLimitUsed(localGptLimitUsed);
       });
   }, []);
 
@@ -95,8 +97,8 @@ export default function Home() {
       return;
     }
 
-    if (dailyLimitUsed) {
-      setError('Today’s complimentary try-on has already been used on this device. Tap Show interest if you want more generations opened up.');
+    if (isPremiumModel && gptLimitUsed) {
+      setError('Today’s free GPT try-on has already been used on this device. Nano routes are still unlimited, or tap Show interest if you want more GPT generations.');
       setErrorCode('DAILY_LIMIT_REACHED');
       return;
     }
@@ -125,16 +127,18 @@ export default function Home() {
       if (!response.ok || !data.resultImage) {
         setErrorCode(data.code || 'SYSTEM_ERROR');
         if (data.code === 'DAILY_LIMIT_REACHED') {
-          markDailyLimitUsed();
-          setDailyLimitUsed(true);
+          markGptLimitUsed();
+          setGptLimitUsed(true);
         }
         throw new Error(data.error || 'Failed to generate the try-on.');
       }
 
       setResultImage(data.resultImage);
       setLastModelName(data.model?.name || selectedModel.name);
-      markDailyLimitUsed();
-      setDailyLimitUsed(true);
+      if (isPremiumModel) {
+        markGptLimitUsed();
+        setGptLimitUsed(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong while generating.');
     } finally {
@@ -251,6 +255,25 @@ export default function Home() {
         />
 
         <aside className="control-panel" aria-label="Generation controls">
+          <div className={`generation-action ${isPremiumModel ? 'is-premium' : ''}`}>
+            <div>
+              <p className="ui-eyebrow">Generate</p>
+              <h2>{getActionTitle({ isPremiumModel, gptLimitUsed, userImage, clothingImage })}</h2>
+              <p>{getActionCopy({ isPremiumModel, gptLimitUsed })}</p>
+            </div>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleTryOn}
+              disabled={!canGenerate}
+              aria-disabled={!canGenerate}
+            >
+              <WandSparkles size={18} strokeWidth={1.8} />
+              {isProcessing ? 'Generating...' : isPremiumModel && gptLimitUsed ? 'GPT preview used' : 'Generate try-on'}
+            </button>
+          </div>
+
           <ModelSelector
             selectedModelId={selectedModelId}
             onModelChange={(modelId) => {
@@ -258,6 +281,35 @@ export default function Home() {
               resetResult();
             }}
           />
+
+          {isPremiumModel && (
+            <div className={`limit-interest ${gptLimitUsed ? 'is-active' : ''}`}>
+              <div>
+                <p className="ui-eyebrow">GPT access</p>
+                <h2>{gptLimitUsed ? 'Free GPT used today' : 'One free GPT render today'}</h2>
+                <p>
+                  {gptLimitUsed
+                    ? 'The Nano routes above remain unlimited. Use Show interest only if you want more GPT-quality renders.'
+                    : 'GPT is the premium route, so this demo includes one free GPT render per device each UTC day.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`interest-button ${interestSelected ? 'is-selected' : ''}`}
+                onClick={handleInterestToggle}
+                disabled={isInterestSaving}
+                aria-pressed={interestSelected}
+              >
+                <Bell size={16} strokeWidth={1.8} />
+                {interestSelected ? 'Interest noted' : 'Show interest'}
+              </button>
+              <small>
+                {interestRegistered
+                  ? 'Counted once for this device. You can still toggle the button for your own reminder.'
+                  : 'This sends at most one counted GPT-interest signal per device cookie.'}
+              </small>
+            </div>
+          )}
 
           <div className="generation-summary">
             <p className="ui-eyebrow">Selected route</p>
@@ -271,44 +323,6 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <button
-            type="button"
-            className="primary-button"
-            onClick={handleTryOn}
-            disabled={!canGenerate}
-            aria-disabled={!canGenerate}
-          >
-            <WandSparkles size={18} strokeWidth={1.8} />
-            {isProcessing ? 'Generating...' : dailyLimitUsed ? 'Daily preview used' : 'Generate try-on'}
-          </button>
-
-          <div className={`limit-interest ${dailyLimitUsed ? 'is-active' : ''}`}>
-            <div>
-              <p className="ui-eyebrow">Launch controls</p>
-              <h2>{dailyLimitUsed ? 'One render used today' : 'One premium render per device'}</h2>
-              <p>
-                {dailyLimitUsed
-                  ? 'GPT Image routes are expensive, so this demo allows one successful generation per device each UTC day.'
-                  : 'The first successful render is complimentary today. If you want more, leave one interest signal from this device.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              className={`interest-button ${interestSelected ? 'is-selected' : ''}`}
-              onClick={handleInterestToggle}
-              disabled={isInterestSaving}
-              aria-pressed={interestSelected}
-            >
-              <Bell size={16} strokeWidth={1.8} />
-              {interestSelected ? 'Interest noted' : 'Show interest'}
-            </button>
-            <small>
-              {interestRegistered
-                ? 'Counted once for this device. You can still toggle the button for your own reminder.'
-                : 'This sends at most one counted signal per device cookie.'}
-            </small>
           </div>
 
           <div className="privacy-note">
@@ -328,6 +342,46 @@ function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function markDailyLimitUsed() {
-  window.localStorage.setItem(LOCAL_GENERATION_DAY_KEY, getTodayKey());
+function markGptLimitUsed() {
+  window.localStorage.setItem(LOCAL_GPT_GENERATION_DAY_KEY, getTodayKey());
+}
+
+function getActionTitle({
+  isPremiumModel,
+  gptLimitUsed,
+  userImage,
+  clothingImage,
+}: {
+  isPremiumModel: boolean;
+  gptLimitUsed: boolean;
+  userImage: UploadedImage | null;
+  clothingImage: UploadedImage | null;
+}) {
+  if (!userImage || !clothingImage) {
+    return 'Add both references';
+  }
+
+  if (isPremiumModel && gptLimitUsed) {
+    return 'GPT preview used today';
+  }
+
+  return 'Ready to render';
+}
+
+function getActionCopy({
+  isPremiumModel,
+  gptLimitUsed,
+}: {
+  isPremiumModel: boolean;
+  gptLimitUsed: boolean;
+}) {
+  if (!isPremiumModel) {
+    return 'Nano routes are unlimited today. Use them freely for iteration, then switch to GPT if you want a premium pass.';
+  }
+
+  if (gptLimitUsed) {
+    return 'You have used today’s free GPT render on this device. Nano routes are still open for more tries.';
+  }
+
+  return 'This premium GPT route includes one free render per device each UTC day.';
 }

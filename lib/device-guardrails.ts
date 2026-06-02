@@ -1,4 +1,4 @@
-export const GENERATION_LIMIT_COOKIE = 'fi_generation_day';
+export const GENERATION_LIMIT_COOKIE = 'fi_gpt_generation_day';
 export const INTEREST_SIGNAL_COOKIE = 'fi_interest_signal';
 
 export function getUtcDayKey(date = new Date()) {

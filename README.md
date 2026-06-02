@@ -8,7 +8,7 @@ An AI virtual try-on studio. Upload a person reference and a garment reference, 
 2. Upload a garment or product image.
 3. Choose a generation route: value, balanced, or premium quality.
 4. Generate, compare before/after, retry, or download the result.
-5. If generation is blocked by safety or the daily device limit, the UI explains the next action without exposing raw provider errors.
+5. If generation is blocked by safety or the GPT daily limit, the UI explains the next action without exposing raw provider errors.
 
 ## Architecture
 
@@ -16,8 +16,8 @@ An AI virtual try-on studio. Upload a person reference and a garment reference, 
 - **Client image preparation** compresses uploads to JPEG in-browser before sending them.
 - **Server validation** checks request shape, MIME type, image byte size, and decodable image metadata before any provider call.
 - **Safety review** runs a cheap multimodal reviewer before expensive generation and blocks nudity, intimate clothing, sexualized edits, and non-consensual intimate-image attempts.
-- **Device guardrails** use same-site cookies plus client local storage to allow one successful generation per device per UTC day.
-- **Interest signal** records one counted interest signal per device cookie for people who want more generations.
+- **Device guardrails** use same-site cookies plus client local storage to allow one successful GPT generation per device per UTC day. The two Nano/Gemini routes are unlimited.
+- **Interest signal** records one counted GPT-interest signal per device cookie for people who want more premium GPT generations.
 - **Model catalog** lives in `lib/model-catalog.ts`, keeping provider routes allowlisted and explainable.
 - **Reference preparation** sends the person and garment as native two-image references.
 - **OpenRouter client** lives in `lib/openrouter.ts`, isolated from UI and request validation.
@@ -92,7 +92,7 @@ The app uses three layers:
 - A strict safety-review prompt through `OPENROUTER_SAFETY_MODEL`; inconclusive review fails closed.
 - Provider refusal mapping, so moderation/policy errors become the same elegant safety state in the UI.
 
-The daily limit is best-effort per browser/device. It uses cookies and local storage, which is appropriate for a lightweight demo but not a substitute for authenticated server-side quotas if the app becomes public at scale.
+The daily limit only applies to the premium GPT route. The Nano/Gemini routes remain unlimited for iteration. The GPT limit is best-effort per browser/device and uses cookies plus local storage, which is appropriate for a lightweight demo but not a substitute for authenticated server-side quotas if the app becomes public at scale.
 
 The interest counter is an in-memory server-process counter plus a device cookie. It is useful for local/demo tracing; replace `lib/interest-store.ts` with a durable database, KV store, or analytics event if you need reliable aggregate counts across deploys.
 
