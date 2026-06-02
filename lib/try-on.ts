@@ -34,6 +34,10 @@ Rules:
 - Avoid artificial seams, pasted edges, distorted hands, warped logos, extra limbs, duplicate garments, floating fabric, and text artifacts.
 - Keep the output in the same overall framing as the person's photo when possible.
 
+Safety:
+- This is a non-explicit fashion fitting tool. Do not remove clothing, reveal intimate body areas, sexualize the wearer, or generate nude, partially nude, lingerie, fetish, or erotic imagery.
+- If the references appear unsafe or the requested edit would create intimate or sexualized imagery, refuse instead of producing an image.
+
 Model-specific note:
 ${model.name} is being used in native two-reference mode.
 

@@ -4,6 +4,18 @@ import { getDefaultTryOnModel, findTryOnModel } from '@/lib/model-catalog';
 import { getImageDataUrlByteLength, isSupportedImageDataUrl } from '@/lib/image-data';
 import { assertReadableImage, ImageValidationError } from '@/lib/image-validation';
 import { generateTryOnImage, OpenRouterError } from '@/lib/openrouter';
+import {
+  GENERATION_LIMIT_COOKIE,
+  getCookieOptions,
+  getUtcDayKey,
+  secondsUntilNextUtcDay,
+} from '@/lib/device-guardrails';
+import {
+  SafetyReviewError,
+  getElegantSafetyMessage,
+  isLikelySafetyRefusal,
+  reviewTryOnSafety,
+} from '@/lib/safety';
 import { buildVirtualTryOnPrompt, prepareTryOnReferences } from '@/lib/try-on';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -22,12 +34,27 @@ const tryOnRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const today = getUtcDayKey();
+
+    if (req.cookies.get(GENERATION_LIMIT_COOKIE)?.value === today) {
+      return NextResponse.json(
+        {
+          code: 'DAILY_LIMIT_REACHED',
+          error: 'Today’s complimentary try-on has already been used on this device. Tap Show interest if you want more generations opened up.',
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await readJson(req);
     const parsed = tryOnRequestSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || 'Invalid try-on request' },
+        {
+          code: 'INVALID_REQUEST',
+          error: parsed.error.issues[0]?.message || 'Invalid try-on request',
+        },
         { status: 400 }
       );
     }
@@ -39,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     if (!requestedModel) {
       return NextResponse.json(
-        { error: 'Unsupported image model selected' },
+        { code: 'INVALID_MODEL', error: 'Unsupported image model selected' },
         { status: 400 }
       );
     }
@@ -49,14 +76,17 @@ export async function POST(req: NextRequest) {
 
     if (totalImageBytes > MAX_COMBINED_IMAGE_BYTES) {
       return NextResponse.json(
-        { error: 'Images are too large. Please use smaller images with a combined size under 7.5MB.' },
+        {
+          code: 'PAYLOAD_TOO_LARGE',
+          error: 'Images are too large. Please use smaller images with a combined size under 7.5MB.',
+        },
         { status: 413 }
       );
     }
 
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenRouter API key is not configured' },
+        { code: 'CONFIGURATION_ERROR', error: 'OpenRouter API key is not configured' },
         { status: 500 }
       );
     }
@@ -70,6 +100,23 @@ export async function POST(req: NextRequest) {
       userImage,
       clothingImage,
     });
+
+    const safety = await reviewTryOnSafety({
+      apiKey: OPENROUTER_API_KEY,
+      images: preparedReferences.images,
+    });
+
+    if (safety.decision === 'block') {
+      return NextResponse.json(
+        {
+          code: 'SAFETY_BLOCKED',
+          category: safety.category,
+          error: safety.userMessage || getElegantSafetyMessage(),
+        },
+        { status: 422 }
+      );
+    }
+
     const prompt = buildVirtualTryOnPrompt(requestedModel);
     const generation = await generateTryOnImage({
       apiKey: OPENROUTER_API_KEY,
@@ -78,7 +125,7 @@ export async function POST(req: NextRequest) {
       images: preparedReferences.images,
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       resultImage: generation.resultImage,
       analysis: generation.analysis,
       model: {
@@ -88,25 +135,53 @@ export async function POST(req: NextRequest) {
       },
       success: true,
     });
+    response.cookies.set(
+      GENERATION_LIMIT_COOKIE,
+      today,
+      getCookieOptions(secondsUntilNextUtcDay())
+    );
+
+    return response;
   } catch (error) {
     if (error instanceof OpenRouterError) {
       console.error('OpenRouter try-on generation failed:', error.message);
+      if (isLikelySafetyRefusal(error.message)) {
+        return NextResponse.json(
+          {
+            code: 'SAFETY_BLOCKED',
+            error: getElegantSafetyMessage(),
+          },
+          { status: 422 }
+        );
+      }
+
       return NextResponse.json(
-        { error: `AI service error: ${error.message}` },
+        { code: 'AI_SERVICE_ERROR', error: `AI service error: ${error.message}` },
+        { status: error.status }
+      );
+    }
+
+    if (error instanceof SafetyReviewError) {
+      console.error('Safety review failed:', error.message);
+      return NextResponse.json(
+        {
+          code: 'SAFETY_REVIEW_UNAVAILABLE',
+          error: 'The safety review could not confidently clear these references. Please try again with clear, non-explicit fashion images.',
+        },
         { status: error.status }
       );
     }
 
     if (error instanceof ImageValidationError) {
       return NextResponse.json(
-        { error: error.message },
+        { code: 'IMAGE_VALIDATION_ERROR', error: error.message },
         { status: error.status }
       );
     }
 
     console.error('Virtual try-on error:', error instanceof Error ? error.message : error);
     return NextResponse.json(
-      { error: 'Failed to process virtual try-on' },
+      { code: 'SERVER_ERROR', error: 'Failed to process virtual try-on' },
       { status: 500 }
     );
   }

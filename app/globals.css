@@ -162,7 +162,7 @@ img {
   font-family: var(--font-display);
   font-size: 68px;
   font-weight: 500;
-  line-height: 0.94;
+  line-height: 1.1;
   overflow-wrap: anywhere;
 }
 
@@ -479,6 +479,79 @@ img {
   line-height: 1.5;
 }
 
+.result-empty small {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.result-loading {
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 18px;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+}
+
+.result-loading__status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  box-shadow: var(--shadow-small);
+}
+
+.result-loading__status strong {
+  display: block;
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.result-loading__status p {
+  margin: 3px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fashion-fact-roller {
+  align-self: stretch;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  min-height: 260px;
+  padding: 20px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.fashion-fact-roller__window {
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+  max-width: 560px;
+  overflow: hidden;
+}
+
+.fashion-fact-roller__window span {
+  color: color-mix(in srgb, var(--color-ink) 74%, var(--color-muted));
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.15;
+  animation: factRoll 4200ms ease-in-out infinite;
+}
+
+.fashion-fact-roller small {
+  font-size: 12px;
+}
+
 .generation-timer {
   padding: 4px 8px;
   border: 1px solid var(--color-border);
@@ -491,6 +564,18 @@ img {
 
 .result-empty.is-error {
   color: var(--color-danger);
+}
+
+.result-empty.is-safety {
+  color: var(--color-accent-strong);
+}
+
+.result-empty.is-safety svg {
+  color: var(--color-accent);
+}
+
+.result-empty.is-limit svg {
+  color: var(--color-gold);
 }
 
 .compare-grid {
@@ -712,6 +797,55 @@ img {
   color: var(--color-coral);
 }
 
+.limit-interest {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+
+.limit-interest.is-active {
+  border-color: color-mix(in srgb, var(--color-gold) 44%, var(--color-border));
+  background: color-mix(in srgb, var(--color-gold-soft) 70%, var(--color-surface));
+}
+
+.limit-interest h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.limit-interest p,
+.limit-interest small {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.interest-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.interest-button:hover,
+.interest-button.is-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
 .primary-button {
   width: 100%;
   min-height: 48px;
@@ -754,6 +888,24 @@ img {
   }
 }
 
+@keyframes factRoll {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  16%,
+  76% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
 @media (max-width: 1180px) {
   .studio-grid {
     grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
@@ -765,7 +917,8 @@ img {
   }
 
   .primary-button,
-  .privacy-note {
+  .privacy-note,
+  .limit-interest {
     grid-column: 2;
   }
 }
@@ -813,7 +966,8 @@ img {
   }
 
   .primary-button,
-  .privacy-note {
+  .privacy-note,
+  .limit-interest {
     grid-column: auto;
   }
 }
@@ -847,6 +1001,28 @@ img {
   .result-tabs button,
   .result-actions .secondary-button {
     flex: 1;
+  }
+
+  .result-loading {
+    padding: 10px;
+  }
+
+  .result-loading__status {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .result-loading__status .generation-timer {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .fashion-fact-roller {
+    min-height: 220px;
+    padding: 12px;
+  }
+
+  .fashion-fact-roller__window span {
+    font-size: 24px;
   }
 
   .compare-grid {

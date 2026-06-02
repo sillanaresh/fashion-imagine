@@ -8,12 +8,16 @@ An AI virtual try-on studio. Upload a person reference and a garment reference, 
 2. Upload a garment or product image.
 3. Choose a generation route: value, balanced, or premium quality.
 4. Generate, compare before/after, retry, or download the result.
+5. If generation is blocked by safety or the daily device limit, the UI explains the next action without exposing raw provider errors.
 
 ## Architecture
 
-- **Next.js App Router** renders the studio UI and exposes `/api/try-on`.
+- **Next.js App Router** renders the studio UI and exposes `/api/try-on`, `/api/usage`, and `/api/interest`.
 - **Client image preparation** compresses uploads to JPEG in-browser before sending them.
 - **Server validation** checks request shape, MIME type, image byte size, and decodable image metadata before any provider call.
+- **Safety review** runs a cheap multimodal reviewer before expensive generation and blocks nudity, intimate clothing, sexualized edits, and non-consensual intimate-image attempts.
+- **Device guardrails** use same-site cookies plus client local storage to allow one successful generation per device per UTC day.
+- **Interest signal** records one counted interest signal per device cookie for people who want more generations.
 - **Model catalog** lives in `lib/model-catalog.ts`, keeping provider routes allowlisted and explainable.
 - **Reference preparation** sends the person and garment as native two-image references.
 - **OpenRouter client** lives in `lib/openrouter.ts`, isolated from UI and request validation.
@@ -24,6 +28,9 @@ Default route:
 
 ```env
 OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
+
+# Optional. Defaults to a low-cost image-input/text-output reviewer.
+OPENROUTER_SAFETY_MODEL=google/gemini-3.1-flash-lite
 ```
 
 Allowlisted routes:
@@ -77,6 +84,16 @@ npm audit
 
 The E2E suite mocks `/api/try-on`, so it does not spend model credits or require `OPENROUTER_API_KEY`.
 
+## Guardrails
+
+The app uses three layers:
+
+- Request validation and image decode checks before any model call.
+- A strict safety-review prompt through `OPENROUTER_SAFETY_MODEL`; inconclusive review fails closed.
+- Provider refusal mapping, so moderation/policy errors become the same elegant safety state in the UI.
+
+The daily limit is best-effort per browser/device. It uses cookies and local storage, which is appropriate for a lightweight demo but not a substitute for authenticated server-side quotas if the app becomes public at scale.
+
 ## Privacy Note
 
 This app does not store uploaded images. During generation, both references are sent to OpenRouter and the selected model provider. Do not describe the flow as fully private unless the deployment adds provider-side retention controls, storage guarantees, and user-facing policy text.
@@ -86,6 +103,8 @@ This app does not store uploaded images. During generation, both references are 
 ```text
 app/
   api/try-on/route.ts      API orchestration
+  api/usage/route.ts       Device quota/interest status
+  api/interest/route.ts    One-count-per-device interest signal
   globals.css              Design tokens and responsive studio UI
   layout.tsx               Metadata and root layout
   page.tsx                 Studio workflow
@@ -96,8 +115,11 @@ components/
 lib/
   image-data.ts            Data URL parsing and byte accounting
   image-validation.ts      Server-side image decode validation
+  device-guardrails.ts     UTC day/cookie helpers for quota and interest
+  fashion-facts.ts         320 global fashion notes for the loading roller
   model-catalog.ts         Model allowlist and route metadata
   openrouter.ts            OpenRouter client and response extraction
+  safety.ts                Multimodal safety reviewer and refusal mapping
   try-on.ts                Prompt and reference preparation
 tests/                     Unit tests
 e2e/                       Playwright E2E tests
