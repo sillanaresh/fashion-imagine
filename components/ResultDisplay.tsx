@@ -1,111 +1,131 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { useState } from 'react';
+import { Columns2, Download, RefreshCcw, RotateCcw, Sparkles } from 'lucide-react';
+import type { UploadedImage } from './ImageUploader';
 
-interface ResultDisplayProps {
-  originalImage: string;
-  resultImage: string;
+type ResultDisplayProps = {
+  resultImage: string | null;
+  userImage: UploadedImage | null;
+  isProcessing: boolean;
+  error: string | null;
+  modelName: string;
+  usedCompositeReference: boolean;
   onReset: () => void;
-}
+  onRetry: () => void;
+  canRetry: boolean;
+};
 
 export default function ResultDisplay({
-  originalImage,
   resultImage,
+  userImage,
+  isProcessing,
+  error,
+  modelName,
+  usedCompositeReference,
   onReset,
+  onRetry,
+  canRetry,
 }: ResultDisplayProps) {
-  const [isComparing, setIsComparing] = useState(false);
-
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = resultImage;
-    link.download = 'fashion-imagine-result.png';
-    link.click();
-  };
+  const [view, setView] = useState<'result' | 'compare'>('result');
+  const canCompare = Boolean(resultImage && userImage);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-6xl mx-auto"
-    >
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold mb-4">
-          <span className="gradient-text">Your Virtual Try-On</span>
-        </h2>
-        <p className="text-gray-400">
-          {isComparing ? 'Comparing before and after' : 'Here\'s how it looks on you'}
-        </p>
+    <section className="result-stage" aria-label="Generated try-on result">
+      <div className="result-stage__header">
+        <div>
+          <p className="ui-eyebrow">Output</p>
+          <h2>Generated fitting</h2>
+        </div>
+        <div className="result-tabs" role="tablist" aria-label="Result view">
+          <button
+            type="button"
+            className={view === 'result' ? 'is-active' : ''}
+            onClick={() => setView('result')}
+            role="tab"
+            aria-selected={view === 'result'}
+          >
+            <Sparkles size={15} strokeWidth={1.8} />
+            Result
+          </button>
+          <button
+            type="button"
+            className={view === 'compare' ? 'is-active' : ''}
+            onClick={() => setView('compare')}
+            disabled={!canCompare}
+            role="tab"
+            aria-selected={view === 'compare'}
+          >
+            <Columns2 size={15} strokeWidth={1.8} />
+            Compare
+          </button>
+        </div>
       </div>
 
-      <div className="glass-effect rounded-2xl p-8 mb-8">
-        {isComparing ? (
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm text-gray-400 mb-3 text-center">Before</p>
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden">
-                <Image
-                  src={originalImage}
-                  alt="Original"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400 mb-3 text-center">After</p>
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden">
-                <Image
-                  src={resultImage}
-                  alt="Result"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
+      <div className="result-canvas">
+        {isProcessing && (
+          <div className="result-empty" aria-live="polite">
+            <span className="spinner" aria-hidden="true" />
+            <strong>Generating the try-on</strong>
+            <p>The model is aligning the garment to the person reference.</p>
           </div>
-        ) : (
-          <div className="relative aspect-[3/4] max-w-2xl mx-auto rounded-xl overflow-hidden">
-            <Image
-              src={resultImage}
-              alt="Result"
-              fill
-              className="object-contain"
-            />
+        )}
+
+        {!isProcessing && error && (
+          <div className="result-empty is-error" aria-live="polite">
+            <strong>Generation failed</strong>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {!isProcessing && !error && !resultImage && (
+          <div className="result-empty">
+            <Sparkles size={28} strokeWidth={1.6} />
+            <strong>Ready for a fitting</strong>
+            <p>Upload both references, choose a model, then generate the final try-on.</p>
+          </div>
+        )}
+
+        {!isProcessing && !error && resultImage && view === 'result' && (
+          <img src={resultImage} alt="Generated virtual try-on" className="result-image" />
+        )}
+
+        {!isProcessing && !error && resultImage && view === 'compare' && userImage && (
+          <div className="compare-grid">
+            <figure>
+              <img src={userImage.dataUrl} alt="Original person reference" />
+              <figcaption>Before</figcaption>
+            </figure>
+            <figure>
+              <img src={resultImage} alt="Generated try-on comparison" />
+              <figcaption>After</figcaption>
+            </figure>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsComparing(!isComparing)}
-          className="px-8 py-4 glass-effect rounded-full text-white font-semibold hover:bg-white/10 transition-all"
-        >
-          {isComparing ? 'Hide Comparison' : 'Compare Before/After'}
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleDownload}
-          className="px-8 py-4 bg-gradient-to-r from-[#00f5ff] to-[#ff006e] text-white font-semibold rounded-full shadow-lg shadow-[#00f5ff]/20 hover:shadow-[#00f5ff]/40 transition-all"
-        >
-          Download Image
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onReset}
-          className="px-8 py-4 glass-effect rounded-full text-white font-semibold hover:bg-white/10 transition-all"
-        >
-          Try Another Outfit
-        </motion.button>
+      <div className="result-stage__footer">
+        <div className="result-model">
+          <span>{modelName}</span>
+          <small>{usedCompositeReference ? 'Composite reference' : 'Native two-reference'}</small>
+        </div>
+        <div className="result-actions">
+          {resultImage && (
+            <a className="secondary-button" href={resultImage} download="fashion-imagine-result.jpg">
+              <Download size={16} strokeWidth={1.8} />
+              Download
+            </a>
+          )}
+          <button type="button" className="secondary-button" onClick={onReset} disabled={!resultImage && !error}>
+            <RotateCcw size={16} strokeWidth={1.8} />
+            Clear
+          </button>
+          <button type="button" className="secondary-button" onClick={onRetry} disabled={!canRetry || isProcessing}>
+            <RefreshCcw size={16} strokeWidth={1.8} />
+            Retry
+          </button>
+        </div>
       </div>
-    </motion.div>
+    </section>
   );
 }

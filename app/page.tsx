@@ -1,25 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import ImageUploader from '@/components/ImageUploader';
+import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react';
+import ImageUploader, { type UploadedImage } from '@/components/ImageUploader';
+import ModelSelector from '@/components/ModelSelector';
+import ResultDisplay from '@/components/ResultDisplay';
+import {
+  DEFAULT_TRY_ON_MODEL_ID,
+  TRY_ON_MODELS,
+  type TryOnModelId,
+} from '@/lib/model-catalog';
+
+type TryOnResponse = {
+  resultImage?: string;
+  error?: string;
+  model?: {
+    id: string;
+    name: string;
+    referenceMode: string;
+  };
+  usedCompositeReference?: boolean;
+};
 
 export default function Home() {
-  const [clothingImage, setClothingImage] = useState<string | null>(null);
-  const [userImage, setUserImage] = useState<string | null>(null);
+  const [userImage, setUserImage] = useState<UploadedImage | null>(null);
+  const [clothingImage, setClothingImage] = useState<UploadedImage | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<TryOnModelId>(DEFAULT_TRY_ON_MODEL_ID);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastModelName, setLastModelName] = useState('No generation yet');
+  const [usedCompositeReference, setUsedCompositeReference] = useState(false);
+
+  const selectedModel = useMemo(
+    () => TRY_ON_MODELS.find((model) => model.id === selectedModelId)!,
+    [selectedModelId]
+  );
+  const canGenerate = Boolean(userImage && clothingImage && !isProcessing);
 
   const handleTryOn = async () => {
-    if (!clothingImage || !userImage) {
-      setError('Please upload both images');
+    if (!userImage || !clothingImage) {
+      setError('Upload both a person reference and a garment reference first.');
       return;
     }
 
     setIsProcessing(true);
     setError(null);
     setResultImage(null);
+    setUsedCompositeReference(selectedModel.referenceMode === 'composite-reference');
+    setLastModelName(selectedModel.name);
 
     try {
       const response = await fetch('/api/try-on', {
@@ -28,202 +58,151 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          clothingImage,
-          userImage,
+          userImage: userImage.dataUrl,
+          clothingImage: clothingImage.dataUrl,
+          modelId: selectedModel.id,
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as TryOnResponse;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process images');
+      if (!response.ok || !data.resultImage) {
+        throw new Error(data.error || 'Failed to generate the try-on.');
       }
 
       setResultImage(data.resultImage);
+      setLastModelName(data.model?.name || selectedModel.name);
+      setUsedCompositeReference(Boolean(data.usedCompositeReference));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Something went wrong while generating.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const resetResult = () => {
+    setResultImage(null);
+    setError(null);
+    setUsedCompositeReference(false);
+    setLastModelName('No generation yet');
+  };
+
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="px-6 md:px-10 lg:px-16 py-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center"
-            style={{ paddingLeft: '32px', gap: '12px' }}
-          >
-            <h1 className="text-xl font-semibold tracking-tight text-gray-900">
-              Fashion Imagine
-            </h1>
-            <div className="flex items-center" style={{ gap: '8px', paddingTop: '2px' }}>
-              <span style={{ fontSize: '24px' }}>👗</span>
-              <span style={{ fontSize: '24px' }}>👔</span>
-            </div>
-          </motion.div>
+    <main className="app-shell">
+      <header className="topbar">
+        <a className="brand-mark" href="/" aria-label="Fashion Imagine home">
+          <span aria-hidden="true">FI</span>
+          <strong>Fashion Imagine</strong>
+        </a>
+        <div className="topbar__status" aria-label="Privacy status">
+          <ShieldCheck size={16} strokeWidth={1.8} />
+          <span>No app-side image storage</span>
         </div>
       </header>
 
-      <section className="px-6 md:px-10 lg:px-16 pt-16 pb-8">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 22 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="text-4xl md:text-5xl font-semibold text-gray-900 tracking-tight"
-          >
-            See how it looks on you
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08 }}
-            className="mt-4 text-base md:text-lg text-gray-600"
-          >
-            Upload your photo and a clothing image to get generated result.
-          </motion.p>
+      <section className="studio-intro" aria-labelledby="studio-title">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <p className="ui-eyebrow">Virtual fitting room</p>
+          <h1 id="studio-title">Fit check before checkout.</h1>
+          <p>
+            Upload a person photo and a garment reference. The studio prepares the inputs,
+            routes them through an allowlisted image model, and returns a single try-on render.
+          </p>
+        </motion.div>
+        <div className="studio-intro__notes" aria-label="Workflow checkpoints">
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Person identity preserved</span>
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Garment details prioritized</span>
+          <span><CheckCircle2 size={16} strokeWidth={1.8} /> Clear model cost mode</span>
         </div>
       </section>
 
-      <section className="px-8 md:px-12 lg:px-20 pb-16">
-        <div className="max-w-[1400px] mx-auto flex justify-center items-center" style={{ gap: '48px' }}>
-          {/* Your Photo Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="card-surface p-8 text-center flex flex-col"
-            style={{ width: '360px' }}
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Photo</h3>
-            <p className="text-sm text-gray-600 mb-6">Drag your portrait or click to upload.</p>
-
-            <div className="flex-1 mb-6" style={{ paddingLeft: '16px', paddingRight: '16px', minHeight: '320px' }}>
-              <ImageUploader
-                label=""
-                sublabel=""
-                image={userImage}
-                onImageChange={setUserImage}
-                icon=""
-              />
-            </div>
-
-            <p className="text-gray-500 leading-relaxed" style={{ fontSize: '11px' }}>
-              Try to upload a full body portrait<br />for better results
-            </p>
-          </motion.div>
-
-          {/* Plus symbol */}
-          <div className="text-gray-400 text-3xl font-light">+</div>
-
-          {/* Clothing Image Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="card-surface p-8 text-center flex flex-col"
-            style={{ width: '360px' }}
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Clothing Image</h3>
-            <p className="text-sm text-gray-600 mb-6">Add the product photo you want to try.</p>
-
-            <div className="flex-1 mb-6" style={{ paddingLeft: '16px', paddingRight: '16px', minHeight: '320px' }}>
-              <ImageUploader
-                label=""
-                sublabel=""
-                image={clothingImage}
-                onImageChange={setClothingImage}
-                icon=""
-              />
-            </div>
-
-            <p className="text-gray-500 leading-relaxed" style={{ fontSize: '11px' }}>
-              Try to upload a clean & clear image<br />of desired clothing
-            </p>
-          </motion.div>
-
-          {/* Arrow symbol */}
-          <div className="text-gray-400 text-3xl font-light">→</div>
-
-          {/* Result Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="card-surface p-8 text-center flex flex-col"
-            style={{ width: '360px' }}
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Result</h3>
-            <p className="text-sm text-gray-600 mb-6">Preview the generated try-on instantly.</p>
-
-            <div className="flex-1 mb-6" style={{ paddingLeft: '16px', paddingRight: '16px', minHeight: '320px' }}>
-              <div className="w-full rounded-[1.4rem] border border-[#dfe3f4] bg-gradient-to-b from-[#f6f7ff] to-[#ecefff] flex items-center justify-center" style={{ height: '100%', minHeight: '320px' }}>
-                {resultImage ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={resultImage}
-                      alt="Result"
-                      className="h-full w-full object-cover rounded-[1.4rem]"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center px-8">
-                    <p className="text-sm leading-relaxed text-gray-500">
-                      Your result will appear<br />here once generated.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleTryOn}
-              disabled={isProcessing || !clothingImage || !userImage}
-              className="gradient-button rounded-full font-semibold tracking-wide disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ width: '60%', height: '29px', fontSize: '12.6px', color: 'white', margin: '0 auto' }}
-            >
-              {isProcessing ? 'Processing...' : 'Do the magic'}
-            </motion.button>
-
-            <p className="text-gray-500 leading-relaxed mt-4" style={{ fontSize: '11px' }}>
-              Please try a couple of times if desired<br />results are not achieved. Image models are probabilistic
-            </p>
-
-            {resultImage && (
-              <button
-                onClick={() => setResultImage(null)}
-                className="mt-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Reset
-              </button>
-            )}
-            {error && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 text-sm text-red-500"
-              >
-                {error}
-              </motion.p>
-            )}
-          </motion.div>
+      <section className="studio-grid" aria-label="Virtual try-on studio">
+        <div className="reference-column">
+          <ImageUploader
+            id="person-upload"
+            title="Person reference"
+            eyebrow="Step 1"
+            helper="Use a clear, well-lit full-body or half-body photo."
+            kind="person"
+            image={userImage}
+            onImageChange={(image) => {
+              setUserImage(image);
+              resetResult();
+            }}
+          />
+          <ImageUploader
+            id="garment-upload"
+            title="Garment reference"
+            eyebrow="Step 2"
+            helper="Use a clean product shot, flat lay, or model photo of the garment."
+            kind="garment"
+            image={clothingImage}
+            onImageChange={(image) => {
+              setClothingImage(image);
+              resetResult();
+            }}
+          />
         </div>
+
+        <ResultDisplay
+          resultImage={resultImage}
+          userImage={userImage}
+          isProcessing={isProcessing}
+          error={error}
+          modelName={lastModelName}
+          usedCompositeReference={usedCompositeReference}
+          onReset={resetResult}
+          onRetry={handleTryOn}
+          canRetry={Boolean(userImage && clothingImage)}
+        />
+
+        <aside className="control-panel" aria-label="Generation controls">
+          <ModelSelector
+            selectedModelId={selectedModelId}
+            onModelChange={(modelId) => {
+              setSelectedModelId(modelId);
+              resetResult();
+            }}
+          />
+
+          <div className="generation-summary">
+            <p className="ui-eyebrow">Selected route</p>
+            <h2>{selectedModel.shortName} mode</h2>
+            <p>{selectedModel.description}</p>
+            <ul>
+              {selectedModel.strengths.map((strength) => (
+                <li key={strength}>
+                  <Sparkles size={14} strokeWidth={1.8} />
+                  {strength}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handleTryOn}
+            disabled={!canGenerate}
+            aria-disabled={!canGenerate}
+          >
+            <WandSparkles size={18} strokeWidth={1.8} />
+            {isProcessing ? 'Generating...' : 'Generate try-on'}
+          </button>
+
+          <div className="privacy-note">
+            <LockKeyhole size={17} strokeWidth={1.8} />
+            <p>
+              This app does not store uploaded images. Generation sends both references to
+              OpenRouter and the selected model provider.
+            </p>
+          </div>
+        </aside>
       </section>
-
-      <footer className="px-6 md:px-10 lg:px-16 pb-12 mt-auto">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-sm text-gray-500">All images are processed privately</p>
-        </div>
-      </footer>
     </main>
   );
 }
